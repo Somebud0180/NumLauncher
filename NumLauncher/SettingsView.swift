@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  SettingsView.swift
 //  NumLauncher
 //
 //  Created by Ethan John Lagera on 7/7/26.
@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct ContentView: View {
+struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
@@ -60,6 +60,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    SettingsView()
         .frame(maxWidth: 360, maxHeight: 900)
 }
