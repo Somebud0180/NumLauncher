@@ -9,51 +9,57 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationStack {
+            Form {
+                Section {
+                    VStack(alignment: .leading) {
+                        Image(systemName: "number.sign")
+                            .resizable()
+                            .foregroundStyle(.white)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .foregroundStyle(.red)
+                            )
+                            .frame(width: 96, height: 96)
+                        
+                        Text("NumLauncher")
+                            .font(.largeTitle)
+                        
+                        Text("Configure the quick shortcuts and the rest of the app here.")
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                
+                Section(header: Text("Quick Shorcuts")) {
+                    ForEach(1...10, id: \.self) { num in
+                        let textNum = num == 10 ? 0 : num
+                        HStack {
+                            Image(systemName: "command")
+                            Image(systemName: "plus")
+                            Text("\(textNum)")
+                            
+                            Spacer()
+                            
+                            RoundedRectangle(cornerRadius: 12)
+                                .glassEffect(
+                                    .regular.interactive(),
+                                    in: RoundedRectangle(cornerRadius: 12)
+                                )
+                                .frame(maxWidth: 200, minHeight: 32)
+                        }
+                        .font(.title3)
+                        .fontWeight(.bold)
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            .formStyle(.grouped)
+            .navigationTitle("NumLauncher Settings")
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .frame(maxWidth: 360, maxHeight: 900)
 }
