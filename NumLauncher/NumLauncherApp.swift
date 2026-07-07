@@ -25,7 +25,7 @@ struct NumLauncherApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SettingsView()
         }
     }
 }
