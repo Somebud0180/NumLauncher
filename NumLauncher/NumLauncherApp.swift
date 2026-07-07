@@ -10,6 +10,7 @@ import SwiftData
 
 @main
 struct NumLauncherApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var coordinator = AppCoordinator()
     
     var body: some Scene {
@@ -27,3 +28,4 @@ struct NumLauncherApp: App {
         .menuBarExtraStyle(.menu)
     }
 }
+
