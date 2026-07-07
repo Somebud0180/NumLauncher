@@ -1,77 +1,38 @@
 //
 //  AppDelegate.swift
-//  NumLauncher
+//  NumLauncher (from ConType)
 //
-//  Created by Assistant on 7/7/26.
+//  Created by GitHub Copilot on 5/25/26.
 //
 
 import AppKit
 
-class AppDelegate: NSObject, NSApplicationDelegate {
-    private let lockFilePath = NSTemporaryDirectory() + "com.numlauncher.unique.lock"
-    private var lockFileDescriptor: Int32 = -1
-    
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if !acquireInstanceLock() {
-            showDuplicateInstanceAlert()
-        }
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        releaseInstanceLock()
-    }
-
-    // MARK: - Duplicate Instance Detection
-    private func acquireInstanceLock() -> Bool {
-        let fd = open(lockFilePath, O_CREAT | O_RDWR, 0o666)
-        guard fd != -1 else { return true } // If can't open, proceed anyway
-        var flockStruct = flock(l_start: 0, l_len: 0, l_pid: 0, l_type: Int16(F_WRLCK), l_whence: Int16(SEEK_SET))
-        let result = fcntl(fd, F_SETLK, &flockStruct)
-        if result == -1 { // Lock failed: already locked
-            close(fd)
-            return false
-        } else {
-            lockFileDescriptor = fd
-            return true
-        }
+        checkForDuplicateInstanceIfNeeded()
     }
     
-    private func releaseInstanceLock() {
-        guard lockFileDescriptor != -1 else { return }
-        close(lockFileDescriptor)
-        lockFileDescriptor = -1
-        try? FileManager.default.removeItem(atPath: lockFilePath)
-    }
-    
-    // MARK: - Alert UI
-    private func showDuplicateInstanceAlert() {
+    private func checkForDuplicateInstanceIfNeeded() {
+        guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
+        let otherInstances = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+            .filter { $0.processIdentifier != NSRunningApplication.current.processIdentifier }
+        
+        guard !otherInstances.isEmpty else { return }
+        
+        NSApp.activate(ignoringOtherApps: true)
+        
         let alert = NSAlert()
-        alert.messageText = "App is already open"
-        alert.informativeText = "NumLauncher is already running. Do you want to close the previous instance?"
-        alert.addButton(withTitle: "Cancel")
-        alert.addButton(withTitle: "Quit Previous Instance")
-        let response = alert.runModal()
-
-        if response == .alertSecondButtonReturn {
-            quitPreviousInstanceAndExit()
-        } else {
-            NSApp.terminate(nil)
-        }
-    }
-    
-    // MARK: - Quit the Previous Instance
-    private func quitPreviousInstanceAndExit() {
-        // Find and quit the previous NumLauncher instance
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier!)
-        for app in runningApps {
-            if app.processIdentifier != ProcessInfo.processInfo.processIdentifier {
-                app.forceTerminate()
+        alert.alertStyle = .warning
+        alert.messageText = "Another instance of NumLauncher is already running."
+        alert.informativeText = "If you want to relaunch NumLauncher, quit the other instance first."
+        alert.addButton(withTitle: "Quit")
+        
+        // If the user confirms, terminate the newly launched instance so they can relaunch after quitting the old one.
+        if alert.runModal() == .alertFirstButtonReturn {
+            DispatchQueue.main.async {
+                NSApp.terminate(nil)
             }
-        }
-        // Give time for quit, then exit self
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            NSApp.terminate(nil)
         }
     }
 }
-
