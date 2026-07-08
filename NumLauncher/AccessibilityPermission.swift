@@ -15,12 +15,12 @@ import Foundation
 public enum InputMonitoringPermission {
     /// Test seam that can replace the real authorization check when needed.
     public static var isAuthorizedProvider: @MainActor () -> Bool = {
-        return CGPreflightPostEventAccess() || CGPreflightListenEventAccess()
+        return CGPreflightListenEventAccess()
     }
     
     /// Test seam that can replace the real authorization request when needed.
     public static var requestAuthorizationProvider: @MainActor () -> Bool = {
-        return CGRequestPostEventAccess()
+        return CGRequestListenEventAccess()
     }
     
     /// Checks if the app is authorized for Input Monitoring.
