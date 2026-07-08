@@ -59,13 +59,47 @@ enum Modifier: String, Codable, CaseIterable, Identifiable {
 
 struct ShortcutSettings: Codable, Identifiable, Equatable {
     var id = UUID()
+    
     var modifier: Modifier
+    
     var index: Int
     
     var appBundleIdentifier: String?
+    
     var appURL: URL? {
         guard let bundleID = appBundleIdentifier else { return nil }
         return NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+    }
+    
+    var appName: String? {
+        guard let appURL = appURL else { return "None" }
+        
+        // 1. Try to read the localized or standard display name from the app's resource values
+        if let resourceValues = try? appURL.resourceValues(forKeys: [.localizedNameKey, .nameKey]) {
+            if let localizedName = resourceValues.localizedName {
+                return localizedName
+            } else if let name = resourceValues.name {
+                // Strips the ".app" extension out if it's appended
+                return name.replacingOccurrences(of: ".app", with: "")
+            }
+        }
+        
+        // 2. Fallback: Extract the last path component from the URL itself (e.g., "Safari.app")
+        let filename = appURL.lastPathComponent
+        if filename.hasSuffix(".app") {
+            return String(filename.dropLast(4))
+        }
+        
+        return filename.isEmpty ? nil : filename
+    }
+    
+    var appIcon: Image {
+        if let appURL = appURL {
+            let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
+            return Image(nsImage: nsImage)
+        }
+        
+        return Image(systemName: "app.badge")
     }
 }
 

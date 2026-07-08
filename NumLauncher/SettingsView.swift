@@ -7,9 +7,11 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
+    private let shortcutKeys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
     
     var body: some View {
         NavigationStack {
@@ -33,10 +35,9 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section(header: Text("Quick Shorcuts")) {
-                    ForEach(1...10, id: \.self) { num in
-                        let textNum = num == 10 ? 0 : num
-                        shortcutConfig(modifier: .command, index: textNum)
+                Section(header: Text("Quick Shortcuts")) {
+                    ForEach(shortcutKeys, id: \.self) { num in
+                        shortcutConfig(for: binding(for: num))
                     }
                 }
             }
@@ -45,23 +46,92 @@ struct SettingsView: View {
         }
     }
     
-    private func shortcutConfig(modifier: Modifier, index: Int) -> some View {
+    private func shortcutConfig(for shortcut: Binding<ShortcutSettings>) -> some View {
         HStack {
-            Image(systemName: modifier.imageSymbol)
+            // Read properties directly out of the wrapped value
+            Image(systemName: shortcut.wrappedValue.modifier.imageSymbol)
             Image(systemName: "plus")
-            Text("\(index)")
+            Text("\(shortcut.wrappedValue.index)")
+                .frame(width: 16, alignment: .leading)
             
             Spacer()
             
-            RoundedRectangle(cornerRadius: 12)
-                .glassEffect(
-                    .regular.interactive(),
-                    in: RoundedRectangle(cornerRadius: 12)
-                )
-                .frame(maxWidth: 200, minHeight: 32)
+            // Pass the binding further into your button
+            shortcutConfigButton(for: shortcut)
         }
-        .font(.title3)
-        .fontWeight(.bold)
+        .font(.body)
+    }
+    
+    private func shortcutConfigButton(for shortcut: Binding<ShortcutSettings>) -> some View {
+        Button(action: {
+            openFilePicker(for: shortcut)
+        }, label: {
+            HStack {
+                if let appName = shortcut.wrappedValue.appName, shortcut.wrappedValue.appBundleIdentifier != nil {
+                    shortcut.wrappedValue.appIcon
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                    
+                    Text(appName)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        shortcut.wrappedValue.appBundleIdentifier = nil
+                    }, label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    })
+                    .buttonStyle(.plain)
+                } else {
+                    Text("Choose App...")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+            .frame(maxWidth: 200, minHeight: 32, maxHeight: 32)
+        })
+        .buttonStyle(.bordered)
+    }
+    
+    private func openFilePicker(for shortcut: Binding<ShortcutSettings>) {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.application]
+        
+        if let appsFolderURL = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask).first {
+            panel.directoryURL = appsFolderURL
+        }
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            if let bundle = Bundle(url: url), let bundleID = bundle.bundleIdentifier {
+                shortcut.wrappedValue.appBundleIdentifier = bundleID
+            }
+        }
+    }
+    
+    private func binding(for number: Int) -> Binding<ShortcutSettings> {
+        Binding(
+            get: {
+                // If it exists in settings, return it.
+                if let match = settings.shortcutSettings.first(where: { $0.index == number }) {
+                    return match
+                }
+                // Otherwise, lazily provide a default Command layout
+                return ShortcutSettings(modifier: .command, index: number, appBundleIdentifier: nil)
+            },
+            set: { newValue in
+                // When modified, update the array inside AppSettings
+                if let index = settings.shortcutSettings.firstIndex(where: { $0.index == number }) {
+                    settings.shortcutSettings[index] = newValue
+                } else {
+                    settings.shortcutSettings.append(newValue)
+                }
+            }
+        )
     }
 }
 
