@@ -8,34 +8,6 @@
 import SwiftUI
 import SwiftData
 
-enum Modifier {
-    case command
-    case option
-    case control
-    
-    var title: String {
-        switch self {
-            case .command:
-            return "Command"
-        case .option:
-            return "Option"
-        case .control:
-            return "Control"
-        }
-    }
-    
-    var imageSymbol: String {
-        switch self {
-        case .command:
-            return "command"
-        case .option:
-            return "option"
-        case .control:
-            return "control"
-        }
-    }
-}
-
 struct SettingsView: View {
     var body: some View {
         NavigationStack {
