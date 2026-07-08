@@ -36,7 +36,10 @@ private struct RegisteredShortcut: Equatable {
 final class KeyboardHotkeyManager {
     /// Called when a registered shortcut is triggered. Provides the associated index.
     var onTrigger: ((Int) -> Void)?
-
+    
+    /// Dynamic check to determine if hotkeys should step aside for Spotlight.
+    var shouldDisableInSpotlight: (() -> Bool)?
+    
     /// Current set of registered shortcuts.
     private var shortcuts: [RegisteredShortcut] = []
 
@@ -150,11 +153,7 @@ final class KeyboardHotkeyManager {
 
     /// C callback bridging to instance method.
     private static let eventTapCallback: CGEventTapCallBack = { _, type, cgEvent, refcon in
-        guard type == .keyDown else {
-            return Unmanaged.passUnretained(cgEvent)
-        }
-        
-        guard let refcon = refcon else {
+        guard type == .keyDown, let refcon = refcon else {
             return Unmanaged.passUnretained(cgEvent)
         }
         
@@ -163,15 +162,18 @@ final class KeyboardHotkeyManager {
             return Unmanaged.passUnretained(cgEvent)
         }
         
-        let isSpotlightOpen = manager.isSpotlightActive() || manager.isSpotlightWindowVisible()
-        if isSpotlightOpen {
-            let flags = nsEvent.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            // Check if the only modifier held down is Command
-            if flags == .command {
-                if let keyStr = manager.eventKey(from: nsEvent),
-                    let targetNumber = Int(keyStr), (1...4).contains(targetNumber) {
-                    // Let Spotlight handle Cmd + 1 to 4 natively by passing the event through
-                    return Unmanaged.passUnretained(cgEvent)
+        let checkSpotlight = manager.shouldDisableInSpotlight?() ?? false
+        
+        if checkSpotlight {
+            let isSpotlightOpen = manager.isSpotlightActive() || manager.isSpotlightWindowVisible()
+            if isSpotlightOpen {
+                let flags = nsEvent.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                if flags == .command {
+                    if let keyStr = manager.eventKey(from: nsEvent),
+                       let targetNumber = Int(keyStr), (1...4).contains(targetNumber) {
+                        // Let Spotlight handle Cmd + 1 to 4 natively by passing the event through
+                        return Unmanaged.passUnretained(cgEvent)
+                    }
                 }
             }
         }
@@ -183,7 +185,7 @@ final class KeyboardHotkeyManager {
             // Swallow the event so the front app doesn't also handle it
             return nil
         }
-
+        
         return Unmanaged.passUnretained(cgEvent)
     }
     

@@ -24,9 +24,12 @@ final class AppCoordinator {
         configureOpenAppOnStartup()
         setupSettingsObservers()
         
+        hotkeyManager.shouldDisableInSpotlight = { [weak self] in
+            self?.settings.disableInSpotlight ?? false
+        }
+        
         hotkeyManager.onTrigger = { [weak self] index in
             guard let self = self else { return }
-            debugPrint("[AppCoordinator] Hotkey triggered for slot index: \(index)")
             self.appLauncher.launchApplication(for: index, settings: self.settings)
         }
         

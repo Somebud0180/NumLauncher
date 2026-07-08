@@ -108,9 +108,15 @@ final class AppSettings: ObservableObject {
     @Published var openAppOnStartup: Bool = true {
         didSet { queueSave() }
     }
+    
     @Published var preferredColorScheme: PreferredColorScheme = .system {
         didSet { queueSave() }
     }
+    
+    @Published var disableInSpotlight: Bool = true {
+        didSet { queueSave() }
+    }
+    
     @Published var shortcutSettings: [ShortcutSettings] = [] {
         didSet { queueSave() }
     }
@@ -124,6 +130,7 @@ final class AppSettings: ObservableObject {
     private struct PersistedData: Codable {
         let openAppOnStartup: Bool
         let preferredColorScheme: PreferredColorScheme
+        let disableInSpotlight: Bool
         let shortcutSettings: [ShortcutSettings]
     }
     
@@ -160,6 +167,7 @@ final class AppSettings: ObservableObject {
         let dataToSave = PersistedData(
             openAppOnStartup: openAppOnStartup,
             preferredColorScheme: preferredColorScheme,
+            disableInSpotlight: disableInSpotlight,
             shortcutSettings: shortcutSettings
         )
         
@@ -179,6 +187,7 @@ final class AppSettings: ObservableObject {
             let decoded = try JSONDecoder().decode(PersistedData.self, from: data)
             
             self.preferredColorScheme = decoded.preferredColorScheme
+            self.disableInSpotlight = decoded.disableInSpotlight
             self.shortcutSettings = decoded.shortcutSettings
         } catch {
             print("Failed to load settings: \(error)")
