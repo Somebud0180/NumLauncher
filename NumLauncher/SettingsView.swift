@@ -8,6 +8,34 @@
 import SwiftUI
 import SwiftData
 
+enum Modifier {
+    case command
+    case option
+    case control
+    
+    var title: String {
+        switch self {
+            case .command:
+            return "Command"
+        case .option:
+            return "Option"
+        case .control:
+            return "Control"
+        }
+    }
+    
+    var imageSymbol: String {
+        switch self {
+        case .command:
+            return "command"
+        case .option:
+            return "option"
+        case .control:
+            return "control"
+        }
+    }
+}
+
 struct SettingsView: View {
     var body: some View {
         NavigationStack {
@@ -34,28 +62,32 @@ struct SettingsView: View {
                 Section(header: Text("Quick Shorcuts")) {
                     ForEach(1...10, id: \.self) { num in
                         let textNum = num == 10 ? 0 : num
-                        HStack {
-                            Image(systemName: "command")
-                            Image(systemName: "plus")
-                            Text("\(textNum)")
-                            
-                            Spacer()
-                            
-                            RoundedRectangle(cornerRadius: 12)
-                                .glassEffect(
-                                    .regular.interactive(),
-                                    in: RoundedRectangle(cornerRadius: 12)
-                                )
-                                .frame(maxWidth: 200, minHeight: 32)
-                        }
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        shortcutConfig(modifier: .command, index: textNum)
                     }
                 }
             }
             .formStyle(.grouped)
             .navigationTitle("NumLauncher Settings")
         }
+    }
+    
+    private func shortcutConfig(modifier: Modifier, index: Int) -> some View {
+        HStack {
+            Image(systemName: modifier.imageSymbol)
+            Image(systemName: "plus")
+            Text("\(index)")
+            
+            Spacer()
+            
+            RoundedRectangle(cornerRadius: 12)
+                .glassEffect(
+                    .regular.interactive(),
+                    in: RoundedRectangle(cornerRadius: 12)
+                )
+                .frame(maxWidth: 200, minHeight: 32)
+        }
+        .font(.title3)
+        .fontWeight(.bold)
     }
 }
 
