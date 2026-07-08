@@ -153,14 +153,29 @@ final class KeyboardHotkeyManager {
         guard type == .keyDown else {
             return Unmanaged.passUnretained(cgEvent)
         }
+        
         guard let refcon = refcon else {
             return Unmanaged.passUnretained(cgEvent)
         }
+        
         let manager = Unmanaged<KeyboardHotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
         guard let nsEvent = NSEvent(cgEvent: cgEvent) else {
             return Unmanaged.passUnretained(cgEvent)
         }
-
+        
+        let isSpotlightOpen = manager.isSpotlightActive() || manager.isSpotlightWindowVisible()
+        if isSpotlightOpen {
+            let flags = nsEvent.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            // Check if the only modifier held down is Command
+            if flags == .command {
+                if let keyStr = manager.eventKey(from: nsEvent),
+                    let targetNumber = Int(keyStr), (1...4).contains(targetNumber) {
+                    // Let Spotlight handle Cmd + 1 to 4 natively by passing the event through
+                    return Unmanaged.passUnretained(cgEvent)
+                }
+            }
+        }
+        
         if let index = manager.matchingIndex(for: nsEvent) {
             DispatchQueue.main.async {
                 manager.onTrigger?(index)
@@ -170,5 +185,25 @@ final class KeyboardHotkeyManager {
         }
 
         return Unmanaged.passUnretained(cgEvent)
+    }
+    
+    func isSpotlightActive() -> Bool {
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else { return false }
+        return frontApp.bundleIdentifier == "com.apple.Spotlight" || frontApp.bundleIdentifier == "com.apple.Siri"
+    }
+    
+    func isSpotlightWindowVisible() -> Bool {
+        let options = CGWindowListOption(arrayLiteral: .excludeDesktopElements, .optionOnScreenOnly)
+        guard let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
+            return false
+        }
+        
+        for window in windowList {
+            if let ownerName = window[kCGWindowOwnerName as String] as? String,
+               ownerName == "Spotlight" || ownerName == "Siri" {
+                return true
+            }
+        }
+        return false
     }
 }
