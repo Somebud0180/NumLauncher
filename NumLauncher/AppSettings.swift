@@ -61,11 +61,19 @@ struct ShortcutSettings: Codable, Identifiable, Equatable {
     var id = UUID()
     var modifier: Modifier
     var index: Int
-    var appPath: URL?
+    
+    var appBundleIdentifier: String?
+    var appURL: URL? {
+        guard let bundleID = appBundleIdentifier else { return nil }
+        return NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+    }
 }
 
 @MainActor
 final class AppSettings: ObservableObject {
+    @Published var openAppOnStartup: Bool = true {
+        didSet { queueSave() }
+    }
     @Published var preferredColorScheme: PreferredColorScheme = .system {
         didSet { queueSave() }
     }
@@ -80,6 +88,7 @@ final class AppSettings: ObservableObject {
     
     /// Minimal Codable structure used strictly for file persistence
     private struct PersistedData: Codable {
+        let openAppOnStartup: Bool
         let preferredColorScheme: PreferredColorScheme
         let shortcutSettings: [ShortcutSettings]
     }
@@ -115,6 +124,7 @@ final class AppSettings: ObservableObject {
     
     private func save() {
         let dataToSave = PersistedData(
+            openAppOnStartup: openAppOnStartup,
             preferredColorScheme: preferredColorScheme,
             shortcutSettings: shortcutSettings
         )
