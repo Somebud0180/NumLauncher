@@ -65,6 +65,7 @@ struct SettingsView: View {
             .formStyle(.grouped)
             .navigationTitle("NumLauncher Settings")
         }
+        .preferredColorScheme(settings.preferredColorScheme.colorScheme)
     }
     
     private func shortcutConfig(for shortcut: Binding<ShortcutSettings>) -> some View {
