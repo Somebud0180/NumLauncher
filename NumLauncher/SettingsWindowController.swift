@@ -51,6 +51,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let hostingController = NSHostingController(
             rootView: SettingsView()
                 .environmentObject(settings)
+                .preferredColorScheme(settings.preferredColorScheme.colorScheme)
                 .frame(minWidth: 440, maxWidth: 440, minHeight: 240, idealHeight: 520, maxHeight: 600)
         )
         

@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
+    @State private var showSpotlightPopover = false
     private let shortcutKeys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
     
     var body: some View {
@@ -32,6 +33,26 @@ struct SettingsView: View {
                             .font(.largeTitle)
                         
                         Text("Configure the quick shortcuts and the rest of the app here.")
+                    }
+                }
+                
+                Section(header: Text("Genaral")) {
+                    Toggle("Open app on startup", isOn: $settings.openAppOnStartup)
+                    
+                    Picker("App theme", selection: $settings.preferredColorScheme) {
+                        ForEach(PreferredColorScheme.allCases) { theme in
+                            Text(theme.title).tag(theme)
+                        }
+                    }
+                    
+                    VStack {
+                        Toggle("Disable when spotlight is open", isOn: $settings.disableInSpotlight)
+                            .help("On macOS 26 and newer, it uses the shortcut Command + 1 to 4 to access different sections of Spotlight. You can make the app temporarily ignore these when Spotlight is open.")
+                        if #available(anyAppleOS 27.0, *), settings.disableInSpotlight {
+                            Text("Due to limitations, the app will also temporarily disable shortcuts 1-4 when the Siri AI (Chat) app is open.")
+                                .font(.footnote)
+                                .foregroundStyle(.yellow)
+                        }
                     }
                 }
                 
