@@ -14,12 +14,23 @@ import Combine
 final class AppCoordinator {
     private let launchAtLoginService = SMAppService.mainApp
     private lazy var settingsController = SettingsWindowController()
+    private let hotkeyManager = KeyboardHotkeyManager()
     private var cancellables = Set<AnyCancellable>()
     let settings = AppSettings()
     
     init() {
         configureOpenAppOnStartup()
         setupSettingsObservers()
+        
+        hotkeyManager.onTrigger = { index in
+            if let slot = self.settings.shortcutSettings.first(where: { $0.index == index }),
+               let url = slot.appURL {
+                NSWorkspace.shared.openApplication(at: url, configuration: .init(), completionHandler: nil)
+            }
+        }
+        
+        applySettings()
+        hotkeyManager.start(requestPermissionIfNeeded: true)
     }
     
     /// Opens the settings window and ensures the app is in regular activation mode so it can receive focus.
@@ -64,6 +75,14 @@ final class AppCoordinator {
                 }
             }
             .store(in: &cancellables)
+        
+        settings.$shortcutSettings
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.applySettings()
+            }
+            .store(in: &cancellables)
     }
     
     /// Enables or disables launch-at-login based on the provided boolean, and ensures the app's settings reflect the effective state of the launch-at-login service after the change.
@@ -85,6 +104,39 @@ final class AppCoordinator {
         if settings.openAppOnStartup != resolvedValue {
             settings.openAppOnStartup = resolvedValue
         }
+    }
+    
+    func applySettings() {
+        // Map only indices 0-9 to numeric keys 1-0 and ignore others
+        let mapped: [(index: Int, key: String, modifiers: NSEvent.ModifierFlags)] = settings.shortcutSettings.compactMap { s in
+            guard (0...9).contains(s.index) else { return nil }
+
+            let key: String
+            switch s.index {
+            case 0: key = "1"
+            case 1: key = "2"
+            case 2: key = "3"
+            case 3: key = "4"
+            case 4: key = "5"
+            case 5: key = "6"
+            case 6: key = "7"
+            case 7: key = "8"
+            case 8: key = "9"
+            case 9: key = "0"
+            default: return nil
+            }
+
+            let flags: NSEvent.ModifierFlags
+            switch s.modifier {
+            case .command: flags = [.command]
+            case .option: flags = [.option]
+            case .control: flags = [.control]
+            }
+
+            return (index: s.index, key: key, modifiers: flags)
+        }
+
+        hotkeyManager.configure(shortcuts: mapped)
     }
     
     @MainActor
