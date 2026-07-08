@@ -119,18 +119,33 @@ final class KeyboardHotkeyManager {
         return shortcuts.first(where: { $0.modifiers == flags && $0.key == key })?.index
     }
 
-    /// Normalizes an NSEvent into a numeric key string ("0"..."9"). Returns nil for non-numeric keys.
+    /// Normalizes an NSEvent into a numeric key string ("0"..."9") using hardware keycodes.
     private func eventKey(from event: NSEvent) -> String? {
-        guard let rawKey = event.charactersIgnoringModifiers?.lowercased(), !rawKey.isEmpty else { return nil }
-        // Map special keys we don't support to nil
         switch event.keyCode {
-        case 49, 36, 76:
-            return nil
+        case 18: return "1"
+        case 19: return "2"
+        case 20: return "3"
+        case 21: return "4"
+        case 23: return "5"
+        case 22: return "6"
+        case 26: return "7"
+        case 28: return "8"
+        case 25: return "9"
+        case 29: return "0"
+            // Numpad Support
+        case 83: return "1"
+        case 84: return "2"
+        case 85: return "3"
+        case 86: return "4"
+        case 87: return "5"
+        case 88: return "6"
+        case 89: return "7"
+        case 91: return "8"
+        case 92: return "9"
+        case 82: return "0"
         default:
-            break
+            return nil
         }
-        let key = String(rawKey.prefix(1))
-        return ("0"..."9").contains(key) ? key : nil
     }
 
     /// C callback bridging to instance method.

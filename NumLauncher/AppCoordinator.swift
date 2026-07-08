@@ -12,21 +12,22 @@ import Combine
 
 @MainActor
 final class AppCoordinator {
-    private let launchAtLoginService = SMAppService.mainApp
     private lazy var settingsController = SettingsWindowController()
-    private let hotkeyManager = KeyboardHotkeyManager()
     private var cancellables = Set<AnyCancellable>()
-    let settings = AppSettings()
+    
+    private let launchAtLoginService = SMAppService.mainApp
+    private let hotkeyManager = KeyboardHotkeyManager()
+    private let settings = AppSettings()
+    private let appLauncher = AppLauncher()
     
     init() {
         configureOpenAppOnStartup()
         setupSettingsObservers()
         
-        hotkeyManager.onTrigger = { index in
-            if let slot = self.settings.shortcutSettings.first(where: { $0.index == index }),
-               let url = slot.appURL {
-                NSWorkspace.shared.openApplication(at: url, configuration: .init(), completionHandler: nil)
-            }
+        hotkeyManager.onTrigger = { [weak self] index in
+            guard let self = self else { return }
+            debugPrint("[AppCoordinator] Hotkey triggered for slot index: \(index)")
+            self.appLauncher.launchApplication(for: index, settings: self.settings)
         }
         
         applySettings()
@@ -63,7 +64,7 @@ final class AppCoordinator {
         }
     }
     
-    /// Sets up observers for openAppOnStartup to allow the coordinator to update the service manager
+    /// Sets up observers for openAppOnStartup and shortcutSettings changes.
     private func setupSettingsObservers() {
         settings.$openAppOnStartup
             .dropFirst()
@@ -107,35 +108,33 @@ final class AppCoordinator {
     }
     
     func applySettings() {
-        // Map only indices 0-9 to numeric keys 1-0 and ignore others
         let mapped: [(index: Int, key: String, modifiers: NSEvent.ModifierFlags)] = settings.shortcutSettings.compactMap { s in
-            guard (0...9).contains(s.index) else { return nil }
-
+            // Shift physical keys to match user interface bindings precisely (Visual key "1" maps to slot 1, up through key "0" mapping to slot 0/10)
             let key: String
             switch s.index {
-            case 0: key = "1"
-            case 1: key = "2"
-            case 2: key = "3"
-            case 3: key = "4"
-            case 4: key = "5"
-            case 5: key = "6"
-            case 6: key = "7"
-            case 7: key = "8"
-            case 8: key = "9"
-            case 9: key = "0"
+            case 1: key = "1"
+            case 2: key = "2"
+            case 3: key = "3"
+            case 4: key = "4"
+            case 5: key = "5"
+            case 6: key = "6"
+            case 7: key = "7"
+            case 8: key = "8"
+            case 9: key = "9"
+            case 0, 10: key = "0"
             default: return nil
             }
-
+            
             let flags: NSEvent.ModifierFlags
             switch s.modifier {
             case .command: flags = [.command]
             case .option: flags = [.option]
             case .control: flags = [.control]
             }
-
+            
             return (index: s.index, key: key, modifiers: flags)
         }
-
+        
         hotkeyManager.configure(shortcuts: mapped)
     }
     
