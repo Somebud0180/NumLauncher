@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    @EnvironmentObject var settings: AppSettings
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -64,6 +66,8 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView()
+    let appSettings = AppSettings()
+    return SettingsView()
+        .environmentObject(appSettings)
         .frame(maxWidth: 360, maxHeight: 900)
 }

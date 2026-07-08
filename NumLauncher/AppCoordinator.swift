@@ -8,22 +8,24 @@
 import AppKit
 import SwiftUI
 import ServiceManagement
+import Combine
 
 @MainActor
 final class AppCoordinator {
     private let launchAtLoginService = SMAppService.mainApp
     private lazy var settingsController = SettingsWindowController()
-    
-    @AppStorage("openAppOnStartup") private var openAppOnStartup = true
+    private var cancellables = Set<AnyCancellable>()
+    let settings = AppSettings()
     
     init() {
         configureOpenAppOnStartup()
+        setupSettingsObservers()
     }
     
     /// Opens the settings window and ensures the app is in regular activation mode so it can receive focus.
     func openSettings() {
         NSApp.setActivationPolicy(.regular)
-        settingsController.show()
+        settingsController.show(with: settings)
         NSApp.activate(ignoringOtherApps: true)
     }
     
@@ -35,7 +37,7 @@ final class AppCoordinator {
     // MARK: - Launch at Login Configuration
     /// Updates the launch-at-login setting based on the current state of the system and user preferences, and sets up a listener to keep them in sync.
     private func configureOpenAppOnStartup() {
-        openAppOnStartup = isLaunchAtLoginEnabled
+        settings.openAppOnStartup = isLaunchAtLoginEnabled
     }
     
     /// Checks the current status of the launch-at-login service to determine if launch-at-login is effectively enabled.
@@ -48,6 +50,20 @@ final class AppCoordinator {
         @unknown default:
             return false
         }
+    }
+    
+    /// Sets up observers for openAppOnStartup to allow the coordinator to update the service manager
+    private func setupSettingsObservers() {
+        settings.$openAppOnStartup
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] shouldEnable in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    self.setLaunchAtLoginEnabled(shouldEnable)
+                }
+            }
+            .store(in: &cancellables)
     }
     
     /// Enables or disables launch-at-login based on the provided boolean, and ensures the app's settings reflect the effective state of the launch-at-login service after the change.
@@ -66,8 +82,8 @@ final class AppCoordinator {
         }
         
         let resolvedValue = isLaunchAtLoginEnabled
-        if openAppOnStartup != resolvedValue {
-            openAppOnStartup = resolvedValue
+        if settings.openAppOnStartup != resolvedValue {
+            settings.openAppOnStartup = resolvedValue
         }
     }
     
