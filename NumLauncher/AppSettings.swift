@@ -99,7 +99,7 @@ struct ShortcutSettings: Codable, Identifiable, Equatable {
             return Image(nsImage: nsImage)
         }
         
-        return Image(systemName: "app.badge")
+        return Image(systemName: "app.grid")
     }
 }
 

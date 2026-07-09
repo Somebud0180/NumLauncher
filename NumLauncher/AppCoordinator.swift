@@ -13,6 +13,7 @@ import Combine
 @MainActor
 final class AppCoordinator {
     private lazy var settingsController = SettingsWindowController()
+    private lazy var toastController = ToastWindowController()
     private var cancellables = Set<AnyCancellable>()
     
     private let launchAtLoginService = SMAppService.mainApp
@@ -30,6 +31,7 @@ final class AppCoordinator {
         
         hotkeyManager.onTrigger = { [weak self] index in
             guard let self = self else { return }
+            self.showToast(for: index)
             self.appLauncher.launchApplication(for: index, settings: self.settings)
         }
         
@@ -139,6 +141,19 @@ final class AppCoordinator {
         }
         
         hotkeyManager.configure(shortcuts: mapped)
+    }
+    
+    func showToast(for index: Int) {
+        guard let slot = settings.shortcutSettings.first(where: { $0.index == index }) else { return }
+        let appName = slot.appName ?? "App"
+        let appIcon = slot.appIcon
+        
+        self.toastController.show(appName: appName, appIcon: appIcon)
+        
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            self.toastController.close()
+        }
     }
     
     @MainActor
