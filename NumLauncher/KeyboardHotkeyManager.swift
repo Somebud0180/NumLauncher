@@ -191,7 +191,7 @@ final class KeyboardHotkeyManager {
     
     func isSpotlightActive() -> Bool {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return false }
-        return frontApp.bundleIdentifier == "com.apple.Spotlight" || frontApp.bundleIdentifier == "com.apple.Siri"
+        return frontApp.bundleIdentifier == "com.apple.Spotlight" || frontApp.bundleIdentifier == "com.apple.Siri" || frontApp.bundleIdentifier == "com.apple.campo"
     }
     
     func isSpotlightWindowVisible() -> Bool {
