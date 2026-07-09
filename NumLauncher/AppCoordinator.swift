@@ -146,11 +146,6 @@ final class AppCoordinator {
     func showToast(for index: Int) {
         guard let slot = settings.shortcutSettings.first(where: { $0.index == index }) else { return }
         self.toastController.show(appName: slot.appName ?? "App", appIcon: slot.appIcon)
-        
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            self.toastController.close()
-        }
     }
     
     @MainActor

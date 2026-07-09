@@ -7,14 +7,18 @@
 
 import AppKit
 import SwiftUI
+import Combine
+
+final class ToastModel: ObservableObject {
+    @Published var appName: String = ""
+    @Published var appIcon: Image = Image(systemName: "app.grid")
+}
 
 @MainActor
 final class ToastWindowController: NSObject, NSWindowDelegate {
-    @State private var appName: String = "App"
-    @State private var appIcon: Image = Image(systemName: "app.grid")
-    
     var onClose: (() -> Void)?
     private var window: NSWindow?
+    private let model = ToastModel()
     
     /// A computed property that checks if the settings window is currently visible by accessing the `isVisible` property of the window.
     var isVisible: Bool {
@@ -23,17 +27,38 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
     
     /// Shows the settings window. If the window doesn't exist yet, it creates it using `makeWindowIfNeeded()`, then makes it key and orders it to the front.
     /// - Parameter settings: The shared configuration instance passed from the AppCoordinator.
-    func show(appName: String, appIcon: Image) {
-        self.appName = appName
-        self.appIcon = appIcon
-        
+    func show(appName: String, appIcon: Image, autoDismissAfter delay: TimeInterval = 1.2) {
+        model.appName = appName
+        model.appIcon = appIcon
         let window = makeWindowIfNeeded()
+        window.alphaValue = 0
         window.orderFrontRegardless()
+        
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.18
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            window.animator().alphaValue = 1.0
+        }
+        
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            close()
+        }
     }
     
     /// Closes the settings window by calling `performClose(nil)`.
     func close() {
-        window?.orderOut(nil)
+        guard let window else { return }
+        
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.15
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            window.animator().alphaValue = 0.0
+        } completionHandler: {
+            window.orderOut(nil)
+            self.model.appName = ""
+            self.model.appIcon = Image(systemName: "app.grid")
+        }
     }
     
     /// NSWindowDelegate method that gets called when the window is about to close.
@@ -55,7 +80,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
         let frame = screen?.visibleFrame
         
         let hostingController = NSHostingController(
-            rootView: ToastView(appName: $appName, appIcon: $appIcon)
+            rootView: ToastView(model: model)
                 .frame(minWidth: 176, maxWidth: 176, minHeight: 44, maxHeight: 44)
         )
         
@@ -64,7 +89,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
         
         let origin = NSPoint(
             x: (frame?.midX ?? 960) - (176 / 2),
-            y: (frame?.maxY ?? 1080) - 44 - (44 / 2)
+            y: (frame?.maxY ?? 1080) - 32 - (44 / 2)
         )
         
         let window = NSWindow(

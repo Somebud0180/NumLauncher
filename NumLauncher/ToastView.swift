@@ -8,16 +8,16 @@
 import SwiftUI
 
 struct ToastView: View {
-    @Binding var appName: String
-    @Binding var appIcon: Image
+    @ObservedObject var model: ToastModel
+    @State private var isVisible = false
     
     var body: some View {
         HStack {
-            appIcon
+            model.appIcon
                 .resizable()
                 .scaledToFit()
             
-            Text("Launching \(appName)")
+            Text("Launching \(model.appName)")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .minimumScaleFactor(0.5)
@@ -29,6 +29,7 @@ struct ToastView: View {
                 .scaledToFit()
                 .foregroundStyle(.primary)
                 .symbolRenderingMode(.hierarchical)
+                .symbolEffect(.drawOn, isActive: !isVisible) // Inverted for some reason
                 .padding(4)
         }
         .padding(8)
@@ -38,11 +39,19 @@ struct ToastView: View {
             Capsule(style: .continuous)
                 .glassEffect()
         )
+        .scaleEffect(isVisible ? 1.0 : 0.98)
+        .opacity(isVisible ? 1.0 : 0.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.9, blendDuration: 0.1), value: isVisible)
+        .onChange(of: model.appName) {
+            isVisible = !model.appName.isEmpty
+        }
+        .onAppear {
+            isVisible = !model.appName.isEmpty
+        }
     }
 }
 
 #Preview {
-    @Previewable @State var appName = "App"
-    @Previewable @State var appIcon = Image(systemName: "app.grid")
-    ToastView(appName: $appName, appIcon: $appIcon)
+    let model = ToastModel()
+    ToastView(model: model)
 }
