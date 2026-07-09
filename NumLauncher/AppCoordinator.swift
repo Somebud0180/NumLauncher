@@ -148,7 +148,7 @@ final class AppCoordinator {
         self.toastController.show(appName: slot.appName ?? "App", appIcon: slot.appIcon)
         
         Task {
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: .seconds(2))
             self.toastController.close()
         }
     }

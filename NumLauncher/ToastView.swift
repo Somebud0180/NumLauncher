@@ -18,20 +18,22 @@ struct ToastView: View {
                 .scaledToFit()
             
             Text("Launching \(appName)")
-                .font(.headline)
+                .font(.subheadline)
                 .fontWeight(.semibold)
+                .minimumScaleFactor(0.5)
             
             Spacer()
             
-            Image(systemName: "progress.indicator")
+            Image(systemName: "checkmark.circle")
                 .resizable()
                 .scaledToFit()
-                .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing, options: .repeat(.continuous))
-                .padding(8)
+                .foregroundStyle(.primary)
+                .symbolRenderingMode(.hierarchical)
+                .padding(4)
         }
-        .padding(16)
-        .padding(.leading, 8)
-        .frame(maxWidth: 288, maxHeight: 72)
+        .padding(8)
+        .padding(.leading, 4)
+        .frame(maxWidth: 192, maxHeight: 44)
         .background(
             Capsule(style: .continuous)
                 .glassEffect()

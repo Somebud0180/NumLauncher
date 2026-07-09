@@ -56,19 +56,19 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
         
         let hostingController = NSHostingController(
             rootView: ToastView(appName: $appName, appIcon: $appIcon)
-                .frame(minWidth: 288, maxWidth: 288, minHeight: 72, maxHeight: 72)
+                .frame(minWidth: 176, maxWidth: 176, minHeight: 44, maxHeight: 44)
         )
         
         hostingController.view.translatesAutoresizingMaskIntoConstraints = true
         hostingController.view.autoresizingMask = .height
         
         let origin = NSPoint(
-            x: (frame?.midX ?? 960) - (288 / 2),
-            y: (frame?.maxY ?? 1080) - 32 - (72 / 2)
+            x: (frame?.midX ?? 960) - (176 / 2),
+            y: (frame?.maxY ?? 1080) - 44 - (44 / 2)
         )
         
         let window = NSWindow(
-            contentRect: NSRect(x: origin.x, y: origin.y, width: 288, height: 72),
+            contentRect: NSRect(x: origin.x, y: origin.y, width: 176, height: 44),
             styleMask: [.borderless, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
