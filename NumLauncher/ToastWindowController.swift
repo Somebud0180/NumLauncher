@@ -28,12 +28,12 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
         self.appIcon = appIcon
         
         let window = makeWindowIfNeeded()
-        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
     }
     
     /// Closes the settings window by calling `performClose(nil)`.
     func close() {
-        window?.performClose(nil)
+        window?.orderOut(nil)
     }
     
     /// NSWindowDelegate method that gets called when the window is about to close.
@@ -64,7 +64,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
         
         let origin = NSPoint(
             x: (frame?.midX ?? 960) - (288 / 2),
-            y: 32 - (72 / 2)
+            y: (frame?.maxY ?? 1080) - 32 - (72 / 2)
         )
         
         let window = NSWindow(
