@@ -1,40 +1,30 @@
 //
 //  AccessibilityPermission.swift
-//  NumLauncher (from ConType)
+//  NumLauncher
 //
-//  Created by Ethan John Lagera on 4/8/26.
+//  Created by Ethan John Lagera on 7/10/26.
 //
-//  Code referenced from Hold To Talk
-//  https://github.com/jxucoder/hold-to-talk/tree/main
 
-import CoreGraphics
+import ApplicationServices
 import Foundation
 
-/// Enum for managing Input Monitoring (TCC) permissions on macOS.
-/// Uses CoreGraphics APIs to check and request permission.
-public enum InputMonitoringPermission {
+/// Enum for managing Accessibility (AX) permissions on macOS.
+public enum AccessibilityPermission {
     /// Test seam that can replace the real authorization check when needed.
     public static var isAuthorizedProvider: @MainActor () -> Bool = {
-        return CGPreflightListenEventAccess()
+        return AXIsProcessTrusted()
     }
     
-    /// Test seam that can replace the real authorization request when needed.
-    public static var requestAuthorizationProvider: @MainActor () -> Bool = {
-        return CGRequestListenEventAccess()
-    }
-    
-    /// Checks if the app is authorized for Input Monitoring.
-    /// - Returns: true if authorized, false otherwise.
+    /// Checks if the app is authorized for Accessibility.
     @MainActor
     public static func isAuthorized() -> Bool {
-        isAuthorizedProvider()
+        return isAuthorizedProvider()
     }
     
-    /// Requests Input Monitoring permission from the user.
-    /// Doesn't guarantee to return true immediately after permission is granted. May require app restart.
-    /// - Returns: `true` if access is granted, `false` otherwise.
+    /// Requests Accessibility permissions by triggering the native system prompt.
     @MainActor
-    public static func requestAuthorization() -> Bool {
-        requestAuthorizationProvider()
+    public static func requestAuthorization() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
 }

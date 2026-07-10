@@ -45,7 +45,7 @@ final class AppCoordinator {
         
         applySettings()
         setAccessoryMode()
-        hotkeyManager.start(requestPermissionIfNeeded: true)
+        hotkeyManager.start()
     }
     
     /// Opens the settings window and ensures the app is in regular activation mode so it can receive focus.

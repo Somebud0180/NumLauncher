@@ -31,7 +31,6 @@ private struct RegisteredShortcut: Equatable {
 }
 
 /// KeyboardHotkeyManager monitors global keyboard events and triggers callbacks for matching shortcuts.
-/// - Note: Requires Input Monitoring/Accessibility permission to install a global event tap.
 @MainActor
 final class KeyboardHotkeyManager {
     /// Called when a registered shortcut is triggered. Provides the associated index.
@@ -57,22 +56,14 @@ final class KeyboardHotkeyManager {
         self.shortcuts = shortcuts.map { RegisteredShortcut(index: $0.index, key: $0.key, modifiers: $0.modifiers.intersection(.deviceIndependentFlagsMask)) }
     }
 
-    /// Starts monitoring for registered shortcuts. Optionally requests permission if needed.
-    func start(requestPermissionIfNeeded: Bool = true) {
+    /// Starts monitoring for registered shortcuts.
+    func start() {
         stop()
-
-        // Check Accessibility/Input Monitoring permission
-        if !InputMonitoringPermission.isAuthorized() {
-            if requestPermissionIfNeeded {
-                _ = InputMonitoringPermission.requestAuthorization()
-            }
-            // Re-check after request; user may need to restart app, so don't proceed if still unauthorized
-            guard InputMonitoringPermission.isAuthorized() else {
-                debugPrint("[KeyboardHotkeyManager] Not authorized for Input Monitoring. Hotkeys disabled.")
-                return
-            }
+        
+        if !AccessibilityPermission.isAuthorized() {
+            AccessibilityPermission.requestAuthorization()
         }
-
+        
         guard installEventTap() else {
             debugPrint("[KeyboardHotkeyManager] Failed to create event tap. Hotkeys disabled.")
             stop()
