@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ToastView: View {
+    @EnvironmentObject var settings: AppSettings
     @ObservedObject var model: ToastModel
     @State private var isVisible = false
     @State private var symbolVisible = false
@@ -57,6 +58,7 @@ struct ToastView: View {
         .onAppear {
             isVisible = !model.appName.isEmpty
         }
+        .preferredColorScheme(settings.preferredColorScheme.colorScheme)
     }
 }
 

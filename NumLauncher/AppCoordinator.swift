@@ -154,7 +154,7 @@ final class AppCoordinator {
     
     func showToast(for index: Int) {
         guard let slot = settings.shortcutSettings.first(where: { $0.index == index }) else { return }
-        self.toastController.show(appName: slot.appName ?? "App", appIcon: slot.appIcon)
+        self.toastController.show(appName: slot.appName ?? "App", appIcon: slot.appIcon, with: settings)
     }
     
     /// Sets the app's activation policy to accessory mode, which hides the app from the Dock and app switcher, allowing it to run in the background without stealing focus.

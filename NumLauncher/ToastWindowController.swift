@@ -40,10 +40,10 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
     
     /// Shows the settings window. If the window doesn't exist yet, it creates it using `makeWindowIfNeeded()`, then makes it key and orders it to the front.
     /// - Parameter settings: The shared configuration instance passed from the AppCoordinator.
-    func show(appName: String, appIcon: Image) {
+    func show(appName: String, appIcon: Image, with settings: AppSettings) {
         model.appName = appName
         model.appIcon = appIcon
-        let window = makeWindowIfNeeded()
+        let window = makeWindowIfNeeded(with: settings)
         window.alphaValue = 0
         window.orderFrontRegardless()
         
@@ -80,7 +80,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
     /// Creates the settings window if it doesn't exist, sets up the hosting controller with the settings view and configures the window properties.
     /// - Parameter settings: The settings instance to inject into the view environment.
     /// - Returns: An `NSWindow` containing the settings view.
-    private func makeWindowIfNeeded() -> NSWindow {
+    private func makeWindowIfNeeded(with settings: AppSettings) -> NSWindow {
         if let window {
             return window
         }
@@ -90,6 +90,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
         
         let hostingController = NSHostingController(
             rootView: ToastView(model: model)
+                .environmentObject(settings)
                 .frame(minWidth: 176, maxWidth: 176, minHeight: 44, maxHeight: 44)
         )
         
