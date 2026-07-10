@@ -11,8 +11,11 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
-    @State private var showSpotlightPopover = false
+    @State private var showSpotlightPopover: Bool = false
+    @State private var footerPressed: Bool = false
     private let shortcutKeys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+    private let version: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    private let build: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     
     var body: some View {
         NavigationStack {
@@ -24,7 +27,7 @@ struct SettingsView: View {
                             .foregroundStyle(.white)
                             .padding(12)
                             .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
                                     .foregroundStyle(.red)
                             )
                             .frame(width: 96, height: 96)
@@ -37,13 +40,13 @@ struct SettingsView: View {
                 }
                 
                 Section(header: Text("Genaral")) {
-                    Toggle("Open app on startup", isOn: $settings.openAppOnStartup)
-                    
                     Picker("App theme", selection: $settings.preferredColorScheme) {
                         ForEach(PreferredColorScheme.allCases) { theme in
                             Text(theme.title).tag(theme)
                         }
                     }
+                    
+                    Toggle("Open app on startup", isOn: $settings.openAppOnStartup)
                     
                     VStack {
                         Toggle("Disable when spotlight is open", isOn: $settings.disableInSpotlight)
@@ -61,11 +64,43 @@ struct SettingsView: View {
                         shortcutConfig(for: binding(for: num))
                     }
                 }
+                
+                Section(footer: footer) {
+                    HStack {
+                        Text("Version")
+                        
+                        Spacer()
+                        
+                        Text("\(version) (\(build))")
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Link(
+                        destination: URL(string: "https://github.com/somebud0180/numlauncher")!,
+                        label: {
+                            Text("Source Code")
+                            
+                            Spacer()
+                            
+                            Text("GitHub \(Image(systemName: "chevron.right"))")
+                                .foregroundStyle(.gray)
+                        }
+                    )
+                }
             }
             .formStyle(.grouped)
             .navigationTitle("NumLauncher Settings")
         }
         .preferredColorScheme(settings.preferredColorScheme.colorScheme)
+    }
+    
+    var footer: some View {
+        Text("[Made with \(Image(systemName: "heart.fill")), made with Hack Club](https://hackclub.com/)")
+            .multilineTextAlignment(.center)
+            .tint(.secondary)
+            .font(.footnote)
+            .underline()
+            .frame(maxWidth: .infinity)
     }
     
     private func shortcutConfig(for shortcut: Binding<ShortcutSettings>) -> some View {
@@ -95,7 +130,8 @@ struct SettingsView: View {
                         .aspectRatio(contentMode: .fit)
                     
                     Text(appName)
-                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(2)
                     
                     Spacer()
                     
