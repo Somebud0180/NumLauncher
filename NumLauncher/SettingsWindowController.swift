@@ -33,7 +33,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     /// NSWindowDelegate method that gets called when the window is about to close.
     /// - Parameter notification: The notification object containing information about the window closing event.
     func windowWillClose(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
         onClose?()
     }
     

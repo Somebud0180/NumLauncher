@@ -38,15 +38,21 @@ final class AppCoordinator {
             }
         }
         
+        settingsController.onClose = { [weak self] in
+            guard let self = self else { return }
+            self.setAccessoryMode()
+        }
+        
         applySettings()
+        setAccessoryMode()
         hotkeyManager.start(requestPermissionIfNeeded: true)
     }
     
     /// Opens the settings window and ensures the app is in regular activation mode so it can receive focus.
     func openSettings() {
-        NSApp.setActivationPolicy(.regular)
+        setRegularMode()
         settingsController.show(with: settings)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
     
     /// Quits the app.
@@ -149,6 +155,16 @@ final class AppCoordinator {
     func showToast(for index: Int) {
         guard let slot = settings.shortcutSettings.first(where: { $0.index == index }) else { return }
         self.toastController.show(appName: slot.appName ?? "App", appIcon: slot.appIcon)
+    }
+    
+    /// Sets the app's activation policy to accessory mode, which hides the app from the Dock and app switcher, allowing it to run in the background without stealing focus.
+    private func setAccessoryMode() {
+        NSApp.setActivationPolicy(.accessory)
+    }
+    
+    /// Sets the app's activation policy to regular mode, which allows the app to appear in the Dock and app switcher, and receive focus for user interaction.
+    private func setRegularMode() {
+        NSApp.setActivationPolicy(.regular)
     }
     
     @MainActor
