@@ -161,5 +161,5 @@ struct SettingsView: View {
     let appSettings = AppSettings()
     return SettingsView()
         .environmentObject(appSettings)
-        .frame(maxWidth: 360, maxHeight: 900)
+        .frame(maxWidth: 400, maxHeight: 600)
 }
