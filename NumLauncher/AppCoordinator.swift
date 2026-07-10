@@ -31,8 +31,11 @@ final class AppCoordinator {
         
         hotkeyManager.onTrigger = { [weak self] index in
             guard let self = self else { return }
-            self.showToast(for: index)
-            self.appLauncher.launchApplication(for: index, settings: self.settings)
+            Task {
+                self.showToast(for: index)
+                let success = await self.appLauncher.launchApplication(for: index, settings: self.settings)
+                self.toastController.updateSuccess(success)
+            }
         }
         
         applySettings()

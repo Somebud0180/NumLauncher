@@ -12,6 +12,7 @@ import Combine
 final class ToastModel: ObservableObject {
     @Published var appName: String = ""
     @Published var appIcon: Image = Image(systemName: "app.grid")
+    @Published var success: Bool?
 }
 
 @MainActor
@@ -23,6 +24,10 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
     /// A computed property that checks if the settings window is currently visible by accessing the `isVisible` property of the window.
     var isVisible: Bool {
         window?.isVisible == true
+    }
+    
+    func updateSuccess(_ success: Bool) {
+        self.model.success = success
     }
     
     /// Shows the settings window. If the window doesn't exist yet, it creates it using `makeWindowIfNeeded()`, then makes it key and orders it to the front.
@@ -58,6 +63,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
             window.orderOut(nil)
             self.model.appName = ""
             self.model.appIcon = Image(systemName: "app.grid")
+            self.model.success = nil
         }
     }
     

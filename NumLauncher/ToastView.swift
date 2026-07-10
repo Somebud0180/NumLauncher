@@ -24,13 +24,19 @@ struct ToastView: View {
             
             Spacer()
             
-            Image(systemName: "checkmark.circle")
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(.primary)
-                .symbolRenderingMode(.hierarchical)
-                .symbolEffect(.drawOn, isActive: !isVisible) // Inverted for some reason
-                .padding(4)
+            if let success = model.success {
+                if success {
+                    Image(systemName: "checkmark.circle")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(success ? Color.primary.gradient : Color.red.gradient)
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.drawOn, isActive: success)
+                        .padding(4)
+                } else {
+                    
+                }
+            }
         }
         .padding(8)
         .padding(.leading, 4)
