@@ -21,14 +21,11 @@ struct SettingsView: View {
             Form {
                 Section {
                     VStack(alignment: .leading) {
-                        Image(systemName: "number.sign")
+                        Image("AppIcon")
                             .resizable()
-                            .foregroundStyle(.white)
-                            .padding(12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .foregroundStyle(.red)
-                            )
+                            .interpolation(.high)
+                            .antialiased(true)
+                            .scaledToFit()
                             .frame(width: 96, height: 96)
                         
                         Text("NumLauncher")
