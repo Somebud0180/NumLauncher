@@ -10,6 +10,7 @@ import SwiftUI
 struct ToastView: View {
     @ObservedObject var model: ToastModel
     @State private var isVisible = false
+    @State private var symbolVisible = false
     
     var body: some View {
         HStack {
@@ -25,17 +26,19 @@ struct ToastView: View {
             Spacer()
             
             if let success = model.success {
-                if success {
-                    Image(systemName: "checkmark.circle")
+                Image(systemName: success ? "checkmark.circle" : "xmark.circle")
                         .resizable()
                         .scaledToFit()
                         .foregroundStyle(success ? Color.primary.gradient : Color.red.gradient)
                         .symbolRenderingMode(.hierarchical)
-                        .symbolEffect(.drawOn, isActive: success)
+                        .symbolEffect(.drawOn, isActive: !symbolVisible)
                         .padding(4)
-                } else {
-                    
-                }
+                        .onAppear {
+                            symbolVisible = true
+                        }
+                        .onDisappear {
+                            symbolVisible = false
+                        }
             }
         }
         .padding(8)
