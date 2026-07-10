@@ -31,7 +31,7 @@ struct ToastView: View {
                         .scaledToFit()
                         .foregroundStyle(success ? Color.primary.gradient : Color.red.gradient)
                         .symbolRenderingMode(.hierarchical)
-                        .symbolAnimation(isActive: !symbolVisible)
+                        .symbolAppearAnimation(isActive: !symbolVisible)
                         .padding(4)
                         .onAppear {
                             symbolVisible = true
@@ -73,7 +73,7 @@ struct SymbolAnimationModifier: ViewModifier {
 }
 
 extension View {
-    func symbolAnimation(isActive: Bool) -> some View {
+    func symbolAppearAnimation(isActive: Bool) -> some View {
         modifier(SymbolAnimationModifier(isActive: isActive))
     }
 }
