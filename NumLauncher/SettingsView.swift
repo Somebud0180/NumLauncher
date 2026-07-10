@@ -12,7 +12,6 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
     @State private var showSpotlightPopover: Bool = false
-    @State private var footerPressed: Bool = false
     private let shortcutKeys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
     private let version: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     private let build: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
