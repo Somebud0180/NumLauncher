@@ -18,7 +18,7 @@ struct ToastView: View {
                 .resizable()
                 .scaledToFit()
             
-            Text("Launching \(model.appName)")
+            Text(model.success != false ? "Launching \(model.appName)" : "App not found")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .minimumScaleFactor(0.5)

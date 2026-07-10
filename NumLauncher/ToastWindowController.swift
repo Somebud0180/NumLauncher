@@ -26,13 +26,21 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
         window?.isVisible == true
     }
     
-    func updateSuccess(_ success: Bool) {
+    func updateSuccess(_ success: Bool, autoDismiss: Bool = true) {
         self.model.success = success
+        
+        if autoDismiss {
+            Task { @MainActor in
+                let delay = success ? 1.2 : 2.4
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                close()
+            }
+        }
     }
     
     /// Shows the settings window. If the window doesn't exist yet, it creates it using `makeWindowIfNeeded()`, then makes it key and orders it to the front.
     /// - Parameter settings: The shared configuration instance passed from the AppCoordinator.
-    func show(appName: String, appIcon: Image, autoDismissAfter delay: TimeInterval = 1.2) {
+    func show(appName: String, appIcon: Image) {
         model.appName = appName
         model.appIcon = appIcon
         let window = makeWindowIfNeeded()
@@ -43,11 +51,6 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
             ctx.duration = 0.18
             ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
             window.animator().alphaValue = 1.0
-        }
-        
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            close()
         }
     }
     
