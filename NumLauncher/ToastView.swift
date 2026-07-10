@@ -46,7 +46,7 @@ struct ToastView: View {
         .frame(maxWidth: 192, maxHeight: 44)
         .background(
             Capsule(style: .continuous)
-                .glassEffect()
+                .foregroundStyle(.ultraThinMaterial)
         )
         .scaleEffect(isVisible ? 1.0 : 0.98)
         .opacity(isVisible ? 1.0 : 0.0)
