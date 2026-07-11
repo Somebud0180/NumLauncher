@@ -10,7 +10,7 @@ import SwiftUI
 import Combine
 
 final class ToastModel: ObservableObject {
-    @Published var appName: String = ""
+    @Published var appName: String?
     @Published var appIcon: Image = Image(systemName: "app.grid")
     @Published var success: Bool?
 }
@@ -40,7 +40,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
     
     /// Shows the settings window. If the window doesn't exist yet, it creates it using `makeWindowIfNeeded()`, then makes it key and orders it to the front.
     /// - Parameter settings: The shared configuration instance passed from the AppCoordinator.
-    func show(appName: String, appIcon: Image, with settings: AppSettings) {
+    func show(appName: String?, appIcon: Image, with settings: AppSettings) {
         model.appName = appName
         model.appIcon = appIcon
         let window = makeWindowIfNeeded(with: settings)
