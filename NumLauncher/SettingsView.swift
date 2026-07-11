@@ -133,6 +133,7 @@ struct SettingsView: View {
                     
                     Button(action: {
                         shortcut.wrappedValue.appBundleIdentifier = nil
+                        shortcut.wrappedValue.appNameStatic = nil
                     }, label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.secondary)
@@ -163,6 +164,14 @@ struct SettingsView: View {
         if panel.runModal() == .OK, let url = panel.url {
             if let bundle = Bundle(url: url), let bundleID = bundle.bundleIdentifier {
                 shortcut.wrappedValue.appBundleIdentifier = bundleID
+                
+                let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+                let name = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
+                let fallbackFromURL = url.deletingPathExtension().lastPathComponent
+                shortcut.wrappedValue.appNameStatic = displayName ?? name ?? fallbackFromURL
+            } else {
+                let fallbackFromURL = url.deletingPathExtension().lastPathComponent
+                shortcut.wrappedValue.appNameStatic = fallbackFromURL
             }
         }
     }
@@ -175,7 +184,7 @@ struct SettingsView: View {
                     return match
                 }
                 // Otherwise, lazily provide a default Command layout
-                return ShortcutSettings(modifier: .command, index: number, appBundleIdentifier: nil)
+                return ShortcutSettings(modifier: .command, index: number, appNameStatic: nil, appBundleIdentifier: nil)
             },
             set: { newValue in
                 // When modified, update the array inside AppSettings

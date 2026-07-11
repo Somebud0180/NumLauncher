@@ -64,6 +64,8 @@ struct ShortcutSettings: Codable, Identifiable, Equatable {
     
     var index: Int
     
+    var appNameStatic: String?
+    
     var appBundleIdentifier: String?
     
     var appURL: URL? {
@@ -72,7 +74,10 @@ struct ShortcutSettings: Codable, Identifiable, Equatable {
     }
     
     var appName: String? {
-        guard let appURL = appURL else { return "None" }
+        // If we don't have a resolvable URL, fall back to the static name if provided
+        guard let appURL = appURL else {
+            return appNameStatic ?? "None"
+        }
         
         // 1. Try to read the localized or standard display name from the app's resource values
         if let resourceValues = try? appURL.resourceValues(forKeys: [.localizedNameKey, .nameKey]) {
@@ -90,7 +95,8 @@ struct ShortcutSettings: Codable, Identifiable, Equatable {
             return String(filename.dropLast(4))
         }
         
-        return filename.isEmpty ? nil : filename
+        // 3. Final fallback to static name if available, otherwise nil (or "None")
+        return appNameStatic ?? (filename.isEmpty ? nil : filename)
     }
     
     var appIcon: Image {
@@ -194,3 +200,4 @@ final class AppSettings: ObservableObject {
         }
     }
 }
+
