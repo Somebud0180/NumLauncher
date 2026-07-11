@@ -19,7 +19,7 @@ struct ToastView: View {
                 .resizable()
                 .scaledToFit()
             
-            Text(model.success != false ? "Launching \(model.appName)" : model.appName == nil ? "App not found" : "\(model.appName) not found")
+            Text(appLaunchMessage())
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .minimumScaleFactor(0.5)
@@ -59,6 +59,15 @@ struct ToastView: View {
             isVisible = model.appName != nil
         }
         .preferredColorScheme(settings.preferredColorScheme.colorScheme)
+    }
+    
+    func appLaunchMessage() -> String {
+        let name = model.appName ?? "App"
+        if model.success == false {
+            return "\(name) not found"
+        } else {
+            return "Launching \(name)"
+        }
     }
 }
 
