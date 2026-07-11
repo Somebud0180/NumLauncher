@@ -53,10 +53,10 @@ struct ToastView: View {
         .opacity(isVisible ? 1.0 : 0.0)
         .animation(.spring(response: 0.25, dampingFraction: 0.9, blendDuration: 0.1), value: isVisible)
         .onChange(of: model.appName) {
-            isVisible = !model.appName.isEmpty
+            isVisible = model.appName != nil
         }
         .onAppear {
-            isVisible = !model.appName.isEmpty
+            isVisible = model.appName != nil
         }
         .preferredColorScheme(settings.preferredColorScheme.colorScheme)
     }

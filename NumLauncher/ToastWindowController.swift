@@ -64,7 +64,7 @@ final class ToastWindowController: NSObject, NSWindowDelegate {
             window.animator().alphaValue = 0.0
         } completionHandler: {
             window.orderOut(nil)
-            self.model.appName = ""
+            self.model.appName = nil
             self.model.appIcon = Image(systemName: "app.grid")
             self.model.success = nil
         }
