@@ -159,13 +159,27 @@ final class KeyboardHotkeyManager {
     }
 
     /// C callback bridging to instance method.
-    private static let eventTapCallback: CGEventTapCallBack = { _, type, cgEvent, refcon in
-        guard type == .keyDown, let refcon = refcon else {
+    private static let eventTapCallback: CGEventTapCallBack = { proxy, type, cgEvent, refcon in
+        guard let refcon = refcon else {
             return Unmanaged.passUnretained(cgEvent)
         }
         
         let manager = Unmanaged<KeyboardHotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
-        guard let nsEvent = NSEvent(cgEvent: cgEvent) else {
+        
+        // Handle system-disabled taps
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            Task { @MainActor in
+                if !AccessibilityPermission.isAuthorized() {
+                    manager.stop()
+                } else if type == .tapDisabledByTimeout, let tap = manager.eventTap {
+                    CGEvent.tapEnable(tap: tap, enable: true)
+                }
+            }
+            return Unmanaged.passUnretained(cgEvent)
+        }
+        
+        // Handle key presses
+        guard type == .keyDown, let nsEvent = NSEvent(cgEvent: cgEvent) else {
             return Unmanaged.passUnretained(cgEvent)
         }
         
