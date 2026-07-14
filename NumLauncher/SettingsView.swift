@@ -39,7 +39,7 @@ struct SettingsView: View {
                         Text("NumLauncher")
                             .font(.largeTitle)
                         
-                        Text("Configure the quick shortcuts and the rest of the app here.")
+                        Text("Launch apps with a quick and memorable shortcut using your number keys. You can configure the app here and change the assigned apps per number key.")
                     }
                 }
                 
