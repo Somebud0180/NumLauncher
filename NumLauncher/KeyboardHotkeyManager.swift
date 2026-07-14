@@ -77,10 +77,6 @@ final class KeyboardHotkeyManager {
     func start() {
         stop()
         
-        if !AccessibilityPermission.isAuthorized() {
-            AccessibilityPermission.requestAuthorization()
-        }
-        
         guard installEventTap() else {
             debugPrint("[KeyboardHotkeyManager] Failed to create event tap. Hotkeys disabled.")
             stop()

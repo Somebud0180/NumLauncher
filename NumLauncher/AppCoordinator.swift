@@ -45,7 +45,10 @@ final class AppCoordinator {
         
         applySettings()
         setAccessoryMode()
-        hotkeyManager.start()
+        
+        Task { @MainActor in
+            self.checkAndPromptAccessibility()
+        }
     }
     
     /// Opens the settings window and ensures the app is in regular activation mode so it can receive focus.
@@ -58,6 +61,51 @@ final class AppCoordinator {
     /// Quits the app.
     func quit() {
         NSApp.terminate(nil)
+    }
+    
+    // MARK: - Accessibility Permission Flow
+    @MainActor
+    private func checkAndPromptAccessibility() {
+        // If already authorized, just start the hotkey manager and return
+        if AccessibilityPermission.isAuthorized() {
+            hotkeyManager.start()
+            return
+        }
+        
+        let alert = NSAlert()
+        alert.messageText = "Accessibility Permissions Required"
+        alert.informativeText = "NumLauncher needs Accessibility permissions to enable keyboard shortcuts. Please enable this in System Settings."
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Quit")
+        
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            // Trigger the native system prompt, which natively routes the user to the correct Privacy pane in System Settings
+            AccessibilityPermission.requestAuthorization()
+            
+            // Immediately present the updated alert requiring a restart
+            showRestartAlert()
+        } else {
+            quit()
+        }
+    }
+    
+    @MainActor
+    private func showRestartAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Restart Required"
+        alert.informativeText = "Once you have enabled the permission for NumLauncher in System Settings, the app needs to restart to apply the changes."
+        alert.addButton(withTitle: "Restart App")
+        alert.addButton(withTitle: "Quit")
+        
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            AppCoordinator.defaultRestartApplication()
+        } else {
+            quit()
+        }
     }
     
     // MARK: - Launch at Login Configuration
