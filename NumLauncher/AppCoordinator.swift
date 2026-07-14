@@ -98,6 +98,13 @@ final class AppCoordinator {
                 self.applySettings()
             }
             .store(in: &cancellables)
+        
+        settings.$preferredModifier
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                self?.applySettings()
+            }
+            .store(in: &cancellables)
     }
     
     /// Enables or disables launch-at-login based on the provided boolean, and ensures the app's settings reflect the effective state of the launch-at-login service after the change.
@@ -122,8 +129,9 @@ final class AppCoordinator {
     }
     
     func applySettings() {
-        // First, filter to only indices we support and compute the key
-        let validSettings = settings.shortcutSettings.compactMap { s -> (index: Int, key: String, flags: NSEvent.ModifierFlags)? in
+        let globalFlags = settings.preferredModifier.reduce(NSEvent.ModifierFlags()) { $0.union($1.flag) }
+        
+        let validSettings = settings.shortcutSettings.compactMap { s -> (index: Int, key: String, modifiers: NSEvent.ModifierFlags)? in
             let key: String
             switch s.index {
             case 1: key = "1"
@@ -140,15 +148,10 @@ final class AppCoordinator {
                 return nil
             }
             
-            let flags = s.modifierFlags
-            return (index: s.index, key: key, flags: flags)
+            return (index: s.index, key: key, modifiers: globalFlags)
         }
         
-        let mapped: [(index: Int, key: String, modifiers: NSEvent.ModifierFlags)] = validSettings.map {
-            (index: $0.index, key: $0.key, modifiers: $0.flags)
-        }
-        
-        hotkeyManager.configure(shortcuts: mapped)
+        hotkeyManager.configure(shortcuts: validSettings)
     }
     
     func showToast(for index: Int) {

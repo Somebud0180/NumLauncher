@@ -143,8 +143,7 @@ struct SettingsView: View {
                 if let match = settings.shortcutSettings.first(where: { $0.index == number }) {
                     return match
                 }
-                // Use the user's recorded preferred modifier instead of a hardcoded [.command]
-                return ShortcutSettings(modifiers: settings.preferredModifier, index: number, appNameStatic: nil, appBundleIdentifier: nil)
+                return ShortcutSettings(index: number, appNameStatic: nil, appBundleIdentifier: nil)
             },
             set: { newValue in
                 if let index = settings.shortcutSettings.firstIndex(where: { $0.index == number }) {
@@ -170,7 +169,11 @@ extension SettingsView {
             }, label: {
                 HStack {
                     let orderedModifiers: [Modifier] = Modifier.displayOrder.filter {
-                        settings.preferredModifier.contains($0)
+                        if isEditingModifiers {
+                            keyboardPreviewModifiers.contains($0)
+                        } else {
+                            settings.preferredModifier.contains($0)
+                        }
                     }
                     
                     if let first = orderedModifiers.first {
@@ -194,13 +197,12 @@ extension SettingsView {
     }
     
     var modifierPopover: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Pick modifier keys")
                 .font(.headline)
             
             Text("Press one or more modifier key you want to use to activate the quick shortcuts")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             
             HStack(spacing: 12) {
                 ForEach(Modifier.allCases) { modifier in
@@ -216,6 +218,11 @@ extension SettingsView {
                         )
                 }
             }
+            .padding(.vertical, 4)
+            
+            Text("Press \(Image(systemName: "escape")) escape to cancel")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
         .padding(12)
         .frame(width: 240)
@@ -226,10 +233,10 @@ extension SettingsView {
 extension SettingsView {
     private func shortcutConfig(for shortcut: Binding<ShortcutSettings>) -> some View {
         let orderedModifiers: [Modifier] = Modifier.displayOrder.filter {
-            shortcut.wrappedValue.modifiers.contains($0)
+            settings.preferredModifier.contains($0)
         }
         
-        return HStack {
+        return HStack(spacing: 4) {
             ForEach(orderedModifiers) { modifier in
                 Image(systemName: modifier.imageSymbol)
                 Image(systemName: "plus")
@@ -296,39 +303,45 @@ extension SettingsView {
             keyboardPreviewModifiers = settings.preferredModifier
             keyboardPressedModifiers = []
             
+            // Track the maximum combination of keys held before release
+            var capturedModifiers: Set<Modifier> = []
+            
             keyboardFlagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
-                guard isEditingModifiers else { return event }
+                guard self.isEditingModifiers else { return event }
                 
                 let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                self.keyboardPressedModifiers = flags
                 
-                // Map the NSEvent flags to your custom Modifier enum
-                var newModifiers: Set<Modifier> = []
-                if flags.contains(.command) { newModifiers.insert(.command) }
-                if flags.contains(.option) { newModifiers.insert(.option) }
-                if flags.contains(.control) { newModifiers.insert(.control) }
-                if flags.contains(.shift) { newModifiers.insert(.shift) }
+                // Map the NSEvent flags to Modifier
+                var currentModifiers: Set<Modifier> = []
+                if flags.contains(.command) { currentModifiers.insert(.command) }
+                if flags.contains(.option) { currentModifiers.insert(.option) }
+                if flags.contains(.control) { currentModifiers.insert(.control) }
+                if flags.contains(.shift) { currentModifiers.insert(.shift) }
                 
-                self.keyboardPreviewModifiers = newModifiers
-                
-                // Only save if the user is actively pressing a valid modifier
-                if !newModifiers.isEmpty {
-                    self.settings.preferredModifier = newModifiers
+                // Push the SwiftUI state updates to the next runloop cycle to prevent CA Commit collisions
+                DispatchQueue.main.async {
+                    self.keyboardPressedModifiers = flags
+                    self.keyboardPreviewModifiers = currentModifiers
                     
-                    // Sync the new modifiers across all existing saved shortcuts automatically
-                    for i in 0..<self.settings.shortcutSettings.count {
-                        self.settings.shortcutSettings[i].modifiers = newModifiers
+                    // As the user presses more keys simultaneously, update the captured final state
+                    if currentModifiers.count >= capturedModifiers.count {
+                        capturedModifiers = currentModifiers
+                    }
+                    
+                    if currentModifiers.isEmpty && !capturedModifiers.isEmpty {
+                        self.settings.preferredModifier = capturedModifiers
+                        self.endKeyboardModifierRecording() // Auto-dismiss!
                     }
                 }
                 
-                return nil // Swallow the event so it doesn't trigger system alerts
+                return nil // Swallow the event synchronously so it doesn't trigger system alerts
             }
             
             keyboardKeyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                guard isEditingModifiers else { return event }
+                guard self.isEditingModifiers else { return event }
                 
-                // Listen for Escape (keycode 53) or Return (keycode 36) to finalize recording
-                if event.keyCode == 53 || event.keyCode == 36 {
+                // Allow Escape (keycode 53) to cancel the recording without saving
+                if event.keyCode == 53 {
                     self.endKeyboardModifierRecording()
                     return nil
                 }

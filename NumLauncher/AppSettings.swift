@@ -86,17 +86,11 @@ enum Modifier: String, Codable, CaseIterable, Identifiable, Hashable {
 struct ShortcutSettings: Codable, Identifiable, Equatable {
     var id = UUID()
     
-    var modifiers: Set<Modifier>
-    
     var index: Int
     
     var appNameStatic: String?
     
     var appBundleIdentifier: String?
-    
-    var modifierFlags: NSEvent.ModifierFlags {
-        modifiers.reduce([]) { $0.union($1.flag) }
-    }
     
     var appURL: URL? {
         guard let bundleID = appBundleIdentifier else { return nil }
