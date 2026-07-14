@@ -13,6 +13,13 @@ struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
     @State private var showSpotlightPopover: Bool = false
     @State private var isEditingModifiers: Bool = false
+    
+    @State var isRecordingKeyboardModifiers = false
+    @State var keyboardPreviewModifiers: Set<Modifier> = []
+    @State var keyboardPressedModifiers: NSEvent.ModifierFlags = []
+    @State private var keyboardKeyDownMonitor: Any?
+    @State private var keyboardFlagsMonitor: Any?
+    
     private let shortcutKeys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
     private let version: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     private let build: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
@@ -104,6 +111,54 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity)
     }
     
+    private func openFilePicker(for shortcut: Binding<ShortcutSettings>) {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.application]
+        
+        if let appsFolderURL = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask).first {
+            panel.directoryURL = appsFolderURL
+        }
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            if let bundle = Bundle(url: url), let bundleID = bundle.bundleIdentifier {
+                shortcut.wrappedValue.appBundleIdentifier = bundleID
+                
+                let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+                let name = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
+                let fallbackFromURL = url.deletingPathExtension().lastPathComponent
+                shortcut.wrappedValue.appNameStatic = displayName ?? name ?? fallbackFromURL
+            } else {
+                let fallbackFromURL = url.deletingPathExtension().lastPathComponent
+                shortcut.wrappedValue.appNameStatic = fallbackFromURL
+            }
+        }
+    }
+    
+    private func binding(for number: Int) -> Binding<ShortcutSettings> {
+        Binding(
+            get: {
+                if let match = settings.shortcutSettings.first(where: { $0.index == number }) {
+                    return match
+                }
+                // Use the user's recorded preferred modifier instead of a hardcoded [.command]
+                return ShortcutSettings(modifiers: settings.preferredModifier, index: number, appNameStatic: nil, appBundleIdentifier: nil)
+            },
+            set: { newValue in
+                if let index = settings.shortcutSettings.firstIndex(where: { $0.index == number }) {
+                    settings.shortcutSettings[index] = newValue
+                } else {
+                    settings.shortcutSettings.append(newValue)
+                }
+            }
+        )
+    }
+}
+
+// MARK: - Modifier Configuration Views
+extension SettingsView {
     var modifierConfig: some View {
         HStack {
             Text("Shortcut")
@@ -111,7 +166,7 @@ struct SettingsView: View {
             Spacer()
             
             Button(action: {
-                isEditingModifiers.toggle()
+                beginKeyboardModifierRecording()
             }, label: {
                 HStack {
                     let orderedModifiers: [Modifier] = Modifier.displayOrder.filter {
@@ -132,7 +187,7 @@ struct SettingsView: View {
                 .frame(maxWidth: 200, minHeight: 32, maxHeight: 32)
             })
             .buttonStyle(.bordered)
-            .popover(isPresented: $isEditingModifiers, arrowEdge: .top) {
+            .popover(isPresented: keyboardRecordingPresentedBinding, arrowEdge: .top) {
                 modifierPopover
             }
         }
@@ -165,7 +220,10 @@ struct SettingsView: View {
         .padding(12)
         .frame(width: 240)
     }
-    
+}
+
+// MARK: - Shortcut Configuration Views
+extension SettingsView {
     private func shortcutConfig(for shortcut: Binding<ShortcutSettings>) -> some View {
         let orderedModifiers: [Modifier] = Modifier.displayOrder.filter {
             shortcut.wrappedValue.modifiers.contains($0)
@@ -221,49 +279,93 @@ struct SettingsView: View {
         })
         .buttonStyle(.bordered)
     }
-    
-    private func openFilePicker(for shortcut: Binding<ShortcutSettings>) {
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [.application]
-        
-        if let appsFolderURL = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask).first {
-            panel.directoryURL = appsFolderURL
-        }
-        
-        if panel.runModal() == .OK, let url = panel.url {
-            if let bundle = Bundle(url: url), let bundleID = bundle.bundleIdentifier {
-                shortcut.wrappedValue.appBundleIdentifier = bundleID
+}
+
+// MARK: - Keyboard modifier recording
+extension SettingsView {
+    /// Begins the process of recording the modifiers by setting up local event monitors for key modifiers. The method updates the relevant state properties to reflect that recording is in progress and captures the user's input to update the settings accordingly.
+    func beginKeyboardModifierRecording() {
+        if !isEditingModifiers {
+            if !AccessibilityPermission.isAuthorized() {
+                AccessibilityPermission.requestAuthorization()
+                return
+            }
+            
+            isEditingModifiers = true
+            isRecordingKeyboardModifiers = true
+            keyboardPreviewModifiers = settings.preferredModifier
+            keyboardPressedModifiers = []
+            
+            keyboardFlagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
+                guard isEditingModifiers else { return event }
                 
-                let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-                let name = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
-                let fallbackFromURL = url.deletingPathExtension().lastPathComponent
-                shortcut.wrappedValue.appNameStatic = displayName ?? name ?? fallbackFromURL
-            } else {
-                let fallbackFromURL = url.deletingPathExtension().lastPathComponent
-                shortcut.wrappedValue.appNameStatic = fallbackFromURL
+                let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                self.keyboardPressedModifiers = flags
+                
+                // Map the NSEvent flags to your custom Modifier enum
+                var newModifiers: Set<Modifier> = []
+                if flags.contains(.command) { newModifiers.insert(.command) }
+                if flags.contains(.option) { newModifiers.insert(.option) }
+                if flags.contains(.control) { newModifiers.insert(.control) }
+                if flags.contains(.shift) { newModifiers.insert(.shift) }
+                
+                self.keyboardPreviewModifiers = newModifiers
+                
+                // Only save if the user is actively pressing a valid modifier
+                if !newModifiers.isEmpty {
+                    self.settings.preferredModifier = newModifiers
+                    
+                    // Sync the new modifiers across all existing saved shortcuts automatically
+                    for i in 0..<self.settings.shortcutSettings.count {
+                        self.settings.shortcutSettings[i].modifiers = newModifiers
+                    }
+                }
+                
+                return nil // Swallow the event so it doesn't trigger system alerts
+            }
+            
+            keyboardKeyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard isEditingModifiers else { return event }
+                
+                // Listen for Escape (keycode 53) or Return (keycode 36) to finalize recording
+                if event.keyCode == 53 || event.keyCode == 36 {
+                    self.endKeyboardModifierRecording()
+                    return nil
+                }
+                
+                return nil // Swallow standard key presses while recording modifiers
             }
         }
     }
     
-    private func binding(for number: Int) -> Binding<ShortcutSettings> {
+    /// Ends the keyboard hotkey recording process by removing the local event monitors and resetting the relevant state properties. If the recording was cancelled (e.g., by pressing the Escape key), it ensures that any temporary state is cleared without updating the settings.
+    func endKeyboardModifierRecording() {
+        isEditingModifiers = false
+        isRecordingKeyboardModifiers = false
+        keyboardPreviewModifiers = []
+        keyboardPressedModifiers = []
+        
+        if let keyDownMonitor = keyboardKeyDownMonitor {
+            NSEvent.removeMonitor(keyDownMonitor)
+            self.keyboardKeyDownMonitor = nil
+        }
+        
+        if let flagsMonitor = keyboardFlagsMonitor {
+            NSEvent.removeMonitor(flagsMonitor)
+            self.keyboardFlagsMonitor = nil
+        }
+    }
+    
+    /// A computed property that provides a `Binding<Bool>` for the keyboard hotkey recording state. The setter of the binding ensures that starting or stopping the recording process is handled correctly based on the new value.
+    private var keyboardRecordingPresentedBinding: Binding<Bool> {
         Binding(
-            get: {
-                // If it exists in settings, return it.
-                if let match = settings.shortcutSettings.first(where: { $0.index == number }) {
-                    return match
-                }
-                // Otherwise, lazily provide a default Command layout
-                return ShortcutSettings(modifiers: [.command], index: number, appNameStatic: nil, appBundleIdentifier: nil)
-            },
-            set: { newValue in
-                // When modified, update the array inside AppSettings
-                if let index = settings.shortcutSettings.firstIndex(where: { $0.index == number }) {
-                    settings.shortcutSettings[index] = newValue
+            get: { self.isRecordingKeyboardModifiers },
+            set: { isPresented in
+                self.isRecordingKeyboardModifiers = isPresented
+                if isPresented {
+                    beginKeyboardModifierRecording()
                 } else {
-                    settings.shortcutSettings.append(newValue)
+                    endKeyboardModifierRecording()
                 }
             }
         )
