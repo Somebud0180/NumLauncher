@@ -100,10 +100,16 @@ struct SettingsView: View {
     }
     
     private func shortcutConfig(for shortcut: Binding<ShortcutSettings>) -> some View {
-        HStack {
-            // Read properties directly out of the wrapped value
-            Image(systemName: shortcut.wrappedValue.modifier.imageSymbol)
-            Image(systemName: "plus")
+        let orderedModifiers: [Modifier] = Modifier.displayOrder.filter {
+            shortcut.wrappedValue.modifiers.contains($0)
+        }
+        
+        return HStack {
+            ForEach(orderedModifiers) { modifier in
+                Image(systemName: modifier.imageSymbol)
+                Image(systemName: "plus")
+            }
+            
             Text("\(shortcut.wrappedValue.index)")
                 .frame(width: 16, alignment: .leading)
             
@@ -184,7 +190,7 @@ struct SettingsView: View {
                     return match
                 }
                 // Otherwise, lazily provide a default Command layout
-                return ShortcutSettings(modifier: .command, index: number, appNameStatic: nil, appBundleIdentifier: nil)
+                return ShortcutSettings(modifiers: [.command], index: number, appNameStatic: nil, appBundleIdentifier: nil)
             },
             set: { newValue in
                 // When modified, update the array inside AppSettings

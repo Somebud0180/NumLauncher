@@ -17,16 +17,30 @@ private struct RegisteredShortcut: Equatable {
 
     var displayText: String {
         var parts: [String] = []
-        if modifiers.contains(.control) { parts.append("Ctrl") }
-        if modifiers.contains(.option) { parts.append("Option") }
-        if modifiers.contains(.command) { parts.append("Command") }
-        if modifiers.contains(.shift) { parts.append("Shift") }
-        switch key {
-        case " ": parts.append("Space")
-        case "\r": parts.append("Return")
-        default: parts.append(key.uppercased())
+        
+        if modifiers.contains(.command) {
+            parts.append("⌘")
         }
-        return parts.joined(separator: " + ")
+        if modifiers.contains(.option) {
+            parts.append("⌥")
+        }
+        if modifiers.contains(.control) {
+            parts.append("⌃")
+        }
+        if modifiers.contains(.shift) {
+            parts.append("⇧")
+        }
+        
+        switch key {
+        case " ":
+            parts.append("Space")
+        case "\r":
+            parts.append("Return")
+        default:
+            parts.append(key.uppercased())
+        }
+        
+        return parts.joined()
     }
 }
 
@@ -53,7 +67,10 @@ final class KeyboardHotkeyManager {
     /// Replaces the current shortcuts with the given list.
     /// - Parameter shortcuts: Array of tuples describing index, key, and modifiers.
     func configure(shortcuts: [(index: Int, key: String, modifiers: NSEvent.ModifierFlags)]) {
-        self.shortcuts = shortcuts.map { RegisteredShortcut(index: $0.index, key: $0.key, modifiers: $0.modifiers.intersection(.deviceIndependentFlagsMask)) }
+        self.shortcuts = shortcuts.map { shortcut in
+            let filteredModifiers = shortcut.modifiers.intersection(.deviceIndependentFlagsMask)
+            return RegisteredShortcut(index: shortcut.index, key: shortcut.key, modifiers: filteredModifiers)
+        }
     }
 
     /// Starts monitoring for registered shortcuts.
@@ -107,10 +124,13 @@ final class KeyboardHotkeyManager {
     }
 
     /// Matches an NSEvent against registered shortcuts.
-    private func matchingIndex(for event: NSEvent) -> Int? {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard let key = eventKey(from: event) else { return nil }
-        return shortcuts.first(where: { $0.modifiers == flags && $0.key == key })?.index
+    func matchingIndex(for event: NSEvent) -> Int? {
+        let eventModifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let eventKey = event.charactersIgnoringModifiers ?? ""
+        
+        return shortcuts.first(where: {
+            $0.key == eventKey && $0.modifiers == eventModifiers
+        })?.index
     }
 
     /// Normalizes an NSEvent into a numeric key string ("0"..."9") using hardware keycodes.

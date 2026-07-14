@@ -33,40 +33,76 @@ enum PreferredColorScheme: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum Modifier: String, Codable, CaseIterable, Identifiable {
+enum Modifier: String, Codable, CaseIterable, Identifiable, Hashable {
     case command
     case option
     case control
+    case shift
     
     var id: String { rawValue }
     
     var title: String {
         switch self {
-        case .command: return "Command"
-        case .option: return "Option"
-        case .control: return "Control"
+        case .command:
+            return "Command"
+        case .option:
+            return "Option"
+        case .control:
+            return "Control"
+        case .shift:
+            return "Shift"
         }
     }
     
     var imageSymbol: String {
         switch self {
-        case .command: return "command"
-        case .option: return "option"
-        case .control: return "control"
+        case .command:
+            return "command"
+        case .option:
+            return "option"
+        case .control:
+            return "control"
+        case .shift:
+            return "shift.fill"
         }
     }
+    
+    var flag: NSEvent.ModifierFlags {
+        switch self {
+        case .command:
+            return .command
+        case .option:
+            return .option
+        case .control:
+            return .control
+        case .shift:
+            return .shift
+        }
+    }
+    
+    static let displayOrder: [Modifier] = [.command, .option, .control, .shift]
 }
 
 struct ShortcutSettings: Codable, Identifiable, Equatable {
     var id = UUID()
     
-    var modifier: Modifier
+    var modifiers: Set<Modifier>
     
     var index: Int
     
     var appNameStatic: String?
     
     var appBundleIdentifier: String?
+    
+    var modifiersDisplayText: String {
+        let ordered: [Modifier] = [.command, .option, .control]
+        let included = ordered.filter { modifiers.contains($0) }
+        return included.map { $0.imageSymbol }.joined(separator: " ")
+    }
+    
+    var modifierFlags: NSEvent.ModifierFlags {
+        modifiers.reduce([]) { $0.union($1.flag) }
+    }
     
     var appURL: URL? {
         guard let bundleID = appBundleIdentifier else { return nil }
