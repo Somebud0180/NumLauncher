@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
     @State private var showSpotlightPopover: Bool = false
+    @State private var isEditingModifiers: Bool = false
     private let shortcutKeys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
     private let version: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     private let build: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
@@ -56,6 +57,10 @@ struct SettingsView: View {
                 }
                 
                 Section(header: Text("Quick Shortcuts")) {
+                    modifierConfig
+                }
+                
+                Section {
                     ForEach(shortcutKeys, id: \.self) { num in
                         shortcutConfig(for: binding(for: num))
                     }
@@ -99,6 +104,68 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity)
     }
     
+    var modifierConfig: some View {
+        HStack {
+            Text("Shortcut")
+            
+            Spacer()
+            
+            Button(action: {
+                isEditingModifiers.toggle()
+            }, label: {
+                HStack {
+                    let orderedModifiers: [Modifier] = Modifier.displayOrder.filter {
+                        settings.preferredModifier.contains($0)
+                    }
+                    
+                    if let first = orderedModifiers.first {
+                        Image(systemName: first.imageSymbol)
+                        
+                        ForEach(orderedModifiers.dropFirst().indices, id: \.self) { index in
+                            Image(systemName: "plus")
+                            Image(systemName: orderedModifiers.dropFirst()[index].imageSymbol)
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: 200, minHeight: 32, maxHeight: 32)
+            })
+            .buttonStyle(.bordered)
+            .popover(isPresented: $isEditingModifiers, arrowEdge: .top) {
+                modifierPopover
+            }
+        }
+    }
+    
+    var modifierPopover: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Pick modifier keys")
+                .font(.headline)
+            
+            Text("Press one or more modifier key you want to use to activate the quick shortcuts")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            
+            HStack(spacing: 12) {
+                ForEach(Modifier.allCases) { modifier in
+                    Image(systemName: modifier.imageSymbol)
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(.primary)
+                        .padding(6)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .foregroundStyle(.thinMaterial)
+                        )
+                }
+            }
+        }
+        .padding(12)
+        .frame(width: 240)
+    }
+    
     private func shortcutConfig(for shortcut: Binding<ShortcutSettings>) -> some View {
         let orderedModifiers: [Modifier] = Modifier.displayOrder.filter {
             shortcut.wrappedValue.modifiers.contains($0)
@@ -115,7 +182,6 @@ struct SettingsView: View {
             
             Spacer()
             
-            // Pass the binding further into your button
             shortcutConfigButton(for: shortcut)
         }
         .font(.body)

@@ -122,8 +122,8 @@ final class AppCoordinator {
     }
     
     func applySettings() {
-        let mapped: [(index: Int, key: String, modifiers: NSEvent.ModifierFlags)] = settings.shortcutSettings.compactMap { s in
-            // Shift physical keys to match user interface bindings precisely (Visual key "1" maps to slot 1, up through key "0" mapping to slot 0/10)
+        // First, filter to only indices we support and compute the key
+        let validSettings = settings.shortcutSettings.compactMap { s -> (index: Int, key: String, flags: NSEvent.ModifierFlags)? in
             let key: String
             switch s.index {
             case 1: key = "1"
@@ -136,17 +136,16 @@ final class AppCoordinator {
             case 8: key = "8"
             case 9: key = "9"
             case 0, 10: key = "0"
-            default: return nil
+            default:
+                return nil
             }
             
-            let flags: NSEvent.ModifierFlags
-            switch s.modifier {
-            case .command: flags = [.command]
-            case .option: flags = [.option]
-            case .control: flags = [.control]
-            }
-            
-            return (index: s.index, key: key, modifiers: flags)
+            let flags = s.modifierFlags
+            return (index: s.index, key: key, flags: flags)
+        }
+        
+        let mapped: [(index: Int, key: String, modifiers: NSEvent.ModifierFlags)] = validSettings.map {
+            (index: $0.index, key: $0.key, modifiers: $0.flags)
         }
         
         hotkeyManager.configure(shortcuts: mapped)

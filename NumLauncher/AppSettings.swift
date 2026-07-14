@@ -94,12 +94,6 @@ struct ShortcutSettings: Codable, Identifiable, Equatable {
     
     var appBundleIdentifier: String?
     
-    var modifiersDisplayText: String {
-        let ordered: [Modifier] = [.command, .option, .control]
-        let included = ordered.filter { modifiers.contains($0) }
-        return included.map { $0.imageSymbol }.joined(separator: " ")
-    }
-    
     var modifierFlags: NSEvent.ModifierFlags {
         modifiers.reduce([]) { $0.union($1.flag) }
     }
@@ -159,6 +153,10 @@ final class AppSettings: ObservableObject {
         didSet { queueSave() }
     }
     
+    @Published var preferredModifier: Set<Modifier> = [.command] {
+        didSet { queueSave() }
+    }
+    
     @Published var shortcutSettings: [ShortcutSettings] = [] {
         didSet { queueSave() }
     }
@@ -173,6 +171,7 @@ final class AppSettings: ObservableObject {
         let openAppOnStartup: Bool
         let preferredColorScheme: PreferredColorScheme
         let disableInSpotlight: Bool
+        let preferredModifier: Set<Modifier>
         let shortcutSettings: [ShortcutSettings]
     }
     
@@ -210,6 +209,7 @@ final class AppSettings: ObservableObject {
             openAppOnStartup: openAppOnStartup,
             preferredColorScheme: preferredColorScheme,
             disableInSpotlight: disableInSpotlight,
+            preferredModifier: preferredModifier,
             shortcutSettings: shortcutSettings
         )
         
@@ -230,6 +230,7 @@ final class AppSettings: ObservableObject {
             
             self.preferredColorScheme = decoded.preferredColorScheme
             self.disableInSpotlight = decoded.disableInSpotlight
+            self.preferredModifier = decoded.preferredModifier
             self.shortcutSettings = decoded.shortcutSettings
         } catch {
             print("Failed to load settings: \(error)")
